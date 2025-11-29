@@ -238,7 +238,7 @@ with col_input:
         placeholder="""Examples:
         • I need a server for EU data center, energy efficiency is critical
         • Looking for workplace computers, low carbon footprint is important
-        • High-performance servers for AI workload, US-based, no budget constraints
+        • I need high-performance laptops for AI workload, no budget constraints
         • Green IT initiative, most sustainable hardware available""",
         label_visibility="collapsed"
     )
@@ -298,8 +298,8 @@ if 'result' in st.session_state:
             st.metric("Priority", req['priority'].title())
         with cols[2]:
             st.metric("Budget", req['budget'].title())
-        with cols[3]:
-            st.metric("Region", req['region'].upper())
+        # with cols[3]:
+        #     st.metric("Region", req['region'].upper())
         
         st.divider()
         
@@ -347,6 +347,10 @@ if 'result' in st.session_state:
                         font=dict(color="#E6EDF3")
                     )
                     st.plotly_chart(fig_gauge, use_container_width=True, key=f"gauge_{idx}")
+
+                #st.divider()
+                st.markdown("#### 💡 Why?")
+                st.info(hw['reasoning'])
                 
                 st.divider()
                 
@@ -354,22 +358,28 @@ if 'result' in st.session_state:
                 specs_col1, specs_col2, specs_col3 = st.columns(3)
                 
                 with specs_col1:
-                    mem = hw['memory']
-                    if isinstance(mem, str) and mem != 'N/A':
-                        mem = f"{mem} GB"
-                    elif mem != 'N/A':
-                        mem = f"{mem} GB"
-                    st.metric("Memory", mem if mem != 'N/A' else "N/A")
+                    mem = hw.get('memory')
+                    if mem and mem not in ['N/A', '', 0, '0', None]:
+                        mem_display = f"{mem} GB"
+                    else:
+                        mem_display = "N/A"
+                    st.metric("Memory", mem_display)
                 
                 with specs_col2:
-                    cpus = hw['number_cpu']
-                    st.metric("CPUs", cpus if cpus != 'N/A' else "N/A")
+                    cpus = hw.get('number_cpu')
+                    if cpus and cpus not in ['N/A', '', 0, '0', None]:
+                        cpus_display = f"{cpus} cores"
+                    else:
+                        cpus_display = "N/A"
+                    st.metric("CPUs", cpus_display)
                 
                 with specs_col3:
-                    height = hw['height']
-                    if height != 'N/A':
-                        height = f"{height} U"
-                    st.metric("Height", height if height != 'N/A' else "N/A")
+                    drive = hw.get('hard_drive')
+                    if drive and drive not in ['N/A', '', None]:
+                        drive_display = str(drive)
+                    else:
+                        drive_display = "N/A"
+                    st.metric("Storage", drive_display)
                 
                 st.divider()
                 
@@ -383,13 +393,13 @@ if 'result' in st.session_state:
                     st.metric("Yearly Energy", f"{hw['yearly_tec']:.0f} kWh")
                 
                 with sus_col3:
-                    st.metric("Lifetime", f"{hw['lifetime']} years")
+                    st.metric("Lifetime", f"{hw['lifetime']} years")    
                 
                 with sus_col4:
                     lifecycle = hw['gwp_total'] + (hw['yearly_tec'] * hw['lifetime'] / 1000)
                     st.metric("Lifecycle Impact", f"{lifecycle:.0f} kgCO₂eq")
                 
-                st.divider()
+                st.divider()    
                 
                 st.markdown("#### 📊 Breakdown")
                 breakdown = {
@@ -405,9 +415,7 @@ if 'result' in st.session_state:
                 )
                 st.plotly_chart(fig_pie, use_container_width=True, key=f"pie_{idx}")
                 
-                st.divider()
-                st.markdown("#### 💡 Why?")
-                st.info(hw['reasoning'])
+                
     
     # TAB 3: Comparison
     with tab3:
@@ -541,7 +549,7 @@ if 'result' in st.session_state:
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #58A6FF; font-size: 0.9em;'>
-    🌍 Eco-IT Hardware Recommender v1.0 | LangChain + Ollama + Streamlit
+    🌍 Eco-Flow Hardware Recommender v1.0 
     <br/>
     Made with ❤️ for sustainable IT infrastructure
 </div>
