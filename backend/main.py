@@ -66,13 +66,12 @@ try:
     print(f"📋 Columns: {list(HARDWARE_DF.columns)}")
     
 except FileNotFoundError:
-    print("❌ hardware.csv not found!")
-    print("   Copy your CSV to: backend/hardware.csv")
+    print(" file.csv not found!")
     HARDWARE_DATA = []
     HARDWARE_DF = pd.DataFrame()
 
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f"Error: {e}")
     HARDWARE_DATA = []
     HARDWARE_DF = pd.DataFrame()
 
@@ -90,20 +89,24 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
     
     if OLLAMA_AVAILABLE and llm:
         try:
-            print(f"🔗 LangChain calling Ollama...")
+            print(f"LangChain calling Ollama...")
             
             # Create prompt
             prompt = f"""You are a hardware requirements analyzer.
-User request: "{user_input}"
+            User request: "{user_input}"
 
-Extract the following in JSON format only (no other text):
-- use_case: (workplace, datacenter, or unknown)
-- priority: (energy_efficiency, performance, cost, balanced)
-- budget: (low, medium, high)
-- region: (US, EU, CN, WW, or not specified)
+            Extract the following in JSON format only (no other text):
+            - use_case: (workplace, datacenter, or unknown)
+            - priority: (energy_efficiency, performance, cost, balanced)
+            - budget: (low, medium, high)
+            - hard_drive: (the hard drive of the device if any)
+            - memory: (RAM in GB)
+            - number_cpu: number of CPUs
+            - height: the height of the device in a datacenter rack, in U
+            - region: (US, EU, CN, WW, or not specified)
 
-ONLY respond with valid JSON. Example:
-{{"use_case": "datacenter", "priority": "energy_efficiency", "budget": "high", "region": "EU"}}"""
+            ONLY respond with valid JSON. Example:
+            {{"use_case": "datacenter", "priority": "energy_efficiency", "budget": "high", "region": "EU"}}"""
             
             # Call LLM directly
             result = llm.invoke(prompt)
@@ -185,20 +188,20 @@ def generate_reasoning_with_langchain(hw: dict, requirements: dict, user_input: 
                 focus_area = "overall balance"
             
             prompt = f"""You are a sustainable IT expert.
-User asked: {user_input[:100]}
-Recommended: {hw.get('manufacturer', 'Unknown')} {hw.get('name', 'Unknown')}
-Priority: {priority}
-GWP: {hw.get('gwp_total', 0)} kgCO2eq
-Yearly Energy: {hw.get('yearly_tec', 0)} kWh
+            User asked: {user_input[:100]}
+            Recommended: {hw.get('manufacturer', 'Unknown')} {hw.get('name', 'Unknown')}
+            Priority: {priority}
+            GWP: {hw.get('gwp_total', 0)} kgCO2eq
+            Yearly Energy: {hw.get('yearly_tec', 0)} kWh
 
-Write a 1-2 sentence explanation why this is a good recommendation.
-Be concise and technical. Focus on: {focus_area}"""
+            Write a 1-2 sentence explanation why this is a good recommendation.
+            Be concise and technical. Focus on: {focus_area}"""
             
             result = llm.invoke(prompt)
             return result.strip()
         
         except Exception as e:
-            print(f"⚠️  Reasoning generation error: {e}")
+            print(f"Reasoning generation error: {e}")
     
     # Fallback reasoning
     priority = requirements.get('priority', 'balanced')
@@ -278,7 +281,7 @@ def score_hardware(hw: dict, requirements: dict) -> float:
     
     return min(100, max(0, score))
 
-def find_recommendations(requirements: dict, top_n: int = 3) -> list:
+def find_recommendations(requirements: dict, top_n: int = 5) -> list:
     """
     Find top N hardware recommendations
     """
