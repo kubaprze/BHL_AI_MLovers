@@ -198,30 +198,11 @@ st.markdown("""
 API_URL = "http://localhost:8000"
 
 # ============ HEADER ============
-st.markdown("""
-    <style>
-    .header-container {
-        text-align: center;
-        padding: 20px 0;
-    }
-    .header-title {
-        font-size: 3em;
-        font-weight: 700;
-        color: #00D9FF;
-        margin: 10px 0;
-    }
-    .header-subtitle {
-        font-size: 1.1em;
-        color: #E6EDF3;
-        margin: 10px 0 30px 0;
-        opacity: 0.9;
-    }
-    </style>
-    <div class="header-container">
-        <div class="header-title">🌍 Eco Flow</div>
-        <div class="header-subtitle">AI-powered sustainable hardware recommendations</div>
-    </div>
-""", unsafe_allow_html=True)
+left_co, cent_co, right_co = st.columns(3)
+with cent_co:
+   st.image("img/Logo_bez_tla.png") 
+
+
 
 st.markdown("---")
 
