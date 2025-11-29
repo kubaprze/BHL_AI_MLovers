@@ -456,7 +456,7 @@ def calculate_performance_score(hw: dict, requirements: dict) -> float:
     if cpu_ratio < 0.8:
         cpu_score *= 0.5  # Penalty for insufficient CPUs
     
-    perf_score = (memory_score * 0.6 + cpu_score * 0.4)
+    perf_score = (memory_score * 0.4 + cpu_score * 0.6)
     
     return min(100, max(0, perf_score))
 
@@ -480,9 +480,9 @@ def score_hardware(hw: dict, requirements: dict) -> float:
     perf_score = calculate_performance_score(hw, requirements)
     
     if priority == 'energy_efficiency':
-        final_score = env_score * 0.7 + perf_score * 0.3
+        final_score = env_score * 0.8 + perf_score * 0.2
     elif priority == 'performance':
-        final_score = env_score * 0.3 + perf_score * 0.7
+        final_score = env_score * 0.2 + perf_score * 0.8
     elif priority == 'cost':
         final_score = env_score * 0.5 + perf_score * 0.5
     else:  # balanced
@@ -507,7 +507,7 @@ def find_recommendations(requirements: dict, top_n: int = 5) -> list:
     if not relevant_products:
         print(f"⚠️  No relevant products found!")
         return []
-    
+
     print(f"🔍 Step 2: Scoring {len(relevant_products)} products...")
     candidates = []
     
@@ -542,19 +542,19 @@ def generate_reasoning_with_langchain(hw: dict, requirements: dict, user_input: 
             env_score = calculate_environmental_score(hw)
             
             prompt = f"""You are a sustainable IT expert.
-User asked: {user_input[:80]}
-Recommended: {hw.get('manufacturer')} {hw.get('name')}
-Priority: {priority}
+                    User asked: {user_input[:80]}
+                    Recommended: {hw.get('manufacturer')} {hw.get('name')}
+                    Priority: {priority}
 
-Environmental metrics:
-- GWP (lifecycle): {hw.get('gwp_total', 0):.0f} kgCO₂eq
-- Yearly energy: {hw.get('yearly_tec', 0):.0f} kWh
-- Manufacturing ratio: {hw.get('gwp_manufacturing_ratio', 0)*100:.0f}%
-- Lifetime: {hw.get('lifetime', 5)} years
-- Environmental score: {env_score:.0f}/100
+                    Environmental metrics:
+                    - GWP (lifecycle): {hw.get('gwp_total', 0):.0f} kgCO₂eq
+                    - Yearly energy: {hw.get('yearly_tec', 0):.0f} kWh
+                    - Manufacturing ratio: {hw.get('gwp_manufacturing_ratio', 0)*100:.0f}%
+                    - Lifetime: {hw.get('lifetime', 5)} years
+                    - Environmental score: {env_score:.0f}/100
 
-Write 2 sentences explaining why this is a good recommendation.
-Always mention environmental benefits. Be technical and concise."""
+                    Write 2 sentences explaining why this is a good recommendation.
+                    Always mention environmental benefits. Be technical and concise."""
             
             result = llm.invoke(prompt)
             return result.strip()
