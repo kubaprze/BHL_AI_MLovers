@@ -685,11 +685,14 @@ if 'result' in st.session_state:
         st.divider()
         st.dataframe(df_export, use_container_width=True, hide_index=True)
 
+
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #58A6FF; font-size: 0.9em;'>
-    🌍 Eco-Flow Hardware Recommender v1.0 
+    🌍 Eco-IT Hardware Recommender v1.0
     <br/>
     Made with ❤️ for sustainable IT infrastructure
+    <br/>
+    <a href='pages/new_function.py' style='color: #00D9FF;'>View New Function →</a>
 </div>
 """, unsafe_allow_html=True)
