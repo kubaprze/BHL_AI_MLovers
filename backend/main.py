@@ -39,10 +39,10 @@ print("Initializing Ollama...")
 try:
     # Initialize Ollama LLM
     llm = Ollama(
-        model="gemma3:1b",
+        model="deepseek-r1:1.5b",
         base_url="http://localhost:11434",
         temperature=0.3,
-        num_predict=256
+        num_predict=1000
     )
     
     print("Ollama initialized")
@@ -94,82 +94,82 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
             
             prompt = f"""You are a hardware classification expert. Be VERY PRECISE.
 
-User request: "{user_input}"
+                User request: "{user_input}"
 
-TASK: Extract and classify the hardware requirements.
+                TASK: Extract and classify the hardware requirements.
 
-RULES:
-1. If user says "laptop", ALWAYS set product_type to "laptop" (NOT monitor, NOT desktop)
-2. If user says "monitor" or "screen", ALWAYS set product_type to "monitor"
-3. If user says "desktop" or "tower", ALWAYS set product_type to "desktop"
-4. If user says "server" or "rack", ALWAYS set product_type to "server"
-5. Only set product_type if explicitly mentioned or VERY clear from context
-6. If product_type is unclear, set to "unknown" and let the system expand search
+                RULES:
+                1. If user says "laptop", ALWAYS set product_type to "laptop" (NOT monitor, NOT desktop)
+                2. If user says "monitor" or "screen", ALWAYS set product_type to "monitor"
+                3. If user says "desktop" or "tower", ALWAYS set product_type to "desktop"
+                4. If user says "server" or "rack", ALWAYS set product_type to "server"
+                5. Only set product_type if explicitly mentioned or VERY clear from context
+                6. If product_type is unclear, set to "unknown" and let the system expand search
 
-CLASSIFICATION FIELDS:
+                CLASSIFICATION FIELDS:
 
-1. use_case (REQUIRED - pick ONE):
-   - "workplace" = office, company, business, work environment
-   - "datacenter" = servers, infrastructure, data center, cloud
-   - "home" = personal, home office, living space, family
-   - "unknown" = cannot determine
+                1. use_case (REQUIRED - pick ONE):
+                - "workplace" = office, company, business, work environment
+                - "datacenter" = servers, infrastructure, data center, cloud
+                - "home" = personal, home office, living space, family
+                - "unknown" = cannot determine
 
-2. product_type (REQUIRED - pick ONE or "unknown"):
-   - "laptop" = portable computer, notebook, ultrabook
-   - "desktop" = tower, workstation, all-in-one (non-portable)
-   - "monitor" = screen, display (NOT a computer)
-   - "server" = server, rack server, blade
-   - "tablet" = tablet, iPad
-   - "phone" = phone, smartphone
-   - "watch" = smartwatch, wearable
-   - "unknown" = cannot determine from context
+                2. product_type (REQUIRED - pick ONE or "unknown"):
+                - "laptop" = portable computer, notebook, ultrabook
+                - "desktop" = tower, workstation, all-in-one (non-portable)
+                - "monitor" = screen, display (NOT a computer)
+                - "server" = server, rack server, blade
+                - "tablet" = tablet, iPad
+                - "phone" = phone, smartphone
+                - "watch" = smartwatch, wearable
+                - "unknown" = cannot determine from context
 
-3. priority (pick ONE):
-   - "energy_efficiency" = green, eco, low power, efficient, carbon, sustainable, battery life
-   - "performance" = fast, powerful, gaming, video editing, rendering, AI, high-performance, compute-intensive
-   - "cost" = cheap, budget, affordable, low price, economical
-   - "balanced" = no clear priority, mixed requirements, or normal use
+                3. priority (pick ONE):
+                - "energy_efficiency" = green, eco, low power, efficient, carbon, sustainable, battery life
+                - "performance" = fast, powerful, gaming, video editing, rendering, AI, high-performance, compute-intensive
+                - "cost" = cheap, budget, affordable, low price, economical
+                - "balanced" = no clear priority, mixed requirements, or normal use
 
-4. memory (estimate RAM in GB):
-   - For laptop: typical 8-16, gaming/video: 32-64
-   - For desktop: typical 8-16, workstation: 32-64+
-   - For server: 64-512+
+                4. memory (estimate RAM in GB):
+                - For laptop: typical 8-16, gaming/video: 32-64
+                - For desktop: typical 8-16, workstation: 32-64+
+                - For server: 64-512+
 
-5. number_cpu (estimate cores/threads):
-   - For laptop: 4-8 cores
-   - For desktop: 6-16 cores
-   - For server: 16-64+ cores
+                5. number_cpu (estimate cores/threads):
+                - For laptop: 4-8 cores
+                - For desktop: 6-16 cores
+                - For server: 16-64+ cores
 
-6. budget (pick ONE):
-   - "low" = budget, limited budget, cheap
-   - "medium" = normal budget, standard
-   - "high" = premium, expensive, "high budget", no budget constraints
+                6. budget (pick ONE):
+                - "low" = budget, limited budget, cheap
+                - "medium" = normal budget, standard
+                - "high" = premium, expensive, "high budget", no budget constraints
 
-RESPOND ONLY with valid JSON (NO other text):
-{{
-    "use_case": "workplace" | "datacenter" | "home" | "unknown",
-    "product_type": "laptop" | "desktop" | "monitor" | "server" | "tablet" | "phone" | "watch" | "unknown",
-    "priority": "energy_efficiency" | "performance" | "cost" | "balanced",
-    "memory": <integer GB>,
-    "number_cpu": <integer cores>,
-    "budget": "low" | "medium" | "high",
-    "confidence": <float 0.0-1.0>,
-    "reasoning": "<explanation of classification>"
-}}
+                RESPOND ONLY with valid JSON (NO other text):
+                {{
+                    "use_case": "workplace" | "datacenter" | "home" | "unknown",
+                    "product_type": "laptop" | "desktop" | "monitor" | "server" | "tablet" | "phone" | "watch" | "unknown",
+                    "priority": "energy_efficiency" | "performance" | "cost" | "balanced",
+                    "memory": <integer GB>,
+                    "number_cpu": <integer cores>,
+                    "budget": "low" | "medium" | "high",
+                    "confidence": <float 0.0-1.0>,
+                    "reasoning": "<explanation of classification>"
+                }}
 
-CRITICAL TEST CASES:
-- "laptop" → product_type: "laptop" (NEVER "monitor" or "desktop")
-- "monitor" → product_type: "monitor" (NEVER "laptop")
-- "desktop computer" → product_type: "desktop" (NEVER "monitor")
-- "server for datacenter" → product_type: "server"
+                CRITICAL TEST CASES:
+                - "laptop" → product_type: "laptop" (NEVER "monitor" or "desktop")
+                - "monitor" → product_type: "monitor" (NEVER "laptop")
+                - "desktop computer" → product_type: "desktop" (NEVER "monitor")
+                - "server for datacenter" → product_type: "server"
 
-NOW CLASSIFY THIS REQUEST:
-"{user_input}"
+                NOW CLASSIFY THIS REQUEST:
+                "{user_input}"
 
-Remember: Be PRECISE. If unsure about product_type, set to "unknown" rather than guess wrong."""
+                Remember: Be PRECISE. If unsure about product_type, set to "unknown" rather than guess wrong."""
             
             result = llm.invoke(prompt)
-            print(f"📝 LLM response: {result[:200]}...")
+            print(f"📝 LLM response: {result}")
             
             # Parse JSON from response
             json_match = re.search(r'\{.*\}', result, re.DOTALL)
@@ -191,7 +191,7 @@ Remember: Be PRECISE. If unsure about product_type, set to "unknown" rather than
         
         except json.JSONDecodeError as e:
             print(f"⚠️  JSON parsing error: {e}")
-            print(f"   Response was: {result[:200]}")
+            print(f"   Response was: {result}")
         except Exception as e:
             print(f"⚠️  LangChain error: {e}")
     
