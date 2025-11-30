@@ -57,7 +57,7 @@ except Exception as e:
 # LOAD HARDWARE DATA FROM CSV 
 print("Loading hardware data from CSV...")
 try:
-    HARDWARE_DF = pd.read_csv('../data/boavizta-data-us-normalized.csv', encoding='utf-8')
+    HARDWARE_DF = pd.read_csv('../data/devices_with_prices.csv', encoding='utf-8')
     HARDWARE_DF = HARDWARE_DF.fillna(0)
     HARDWARE_DATA = HARDWARE_DF.to_dict('records')
     
@@ -84,13 +84,13 @@ class UserRequest(BaseModel):
 def extract_requirements_with_langchain(user_input: str) -> dict:
     """
     Use LangChain + Ollama to extract and classify requirements
-    LLM handles ALL classification (use_case, product_type, priority, etc.)
+    LLM handles ALL classification (product_type, priority, etc.)
     Single LLM call returns everything needed
     """
     
     if OLLAMA_AVAILABLE and llm:
         try:
-            print(f"🔗 LangChain calling Ollama...")
+            print(f"LangChain calling Ollama...")
             
             prompt = f"""You are a hardware classification expert. Be VERY PRECISE.
 
@@ -108,13 +108,7 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
 
                 CLASSIFICATION FIELDS:
 
-                1. use_case (REQUIRED - pick ONE):
-                - "workplace" = office, company, business, work environment
-                - "datacenter" = servers, infrastructure, data center, cloud
-                - "home" = personal, home office, living space, family
-                - "unknown" = cannot determine
-
-                2. product_type (REQUIRED - pick ONE or "unknown"):
+                1. product_type (REQUIRED - pick ONE or "unknown"):
                 - "laptop" = portable computer, notebook, ultrabook
                 - "desktop" = tower, workstation, all-in-one (non-portable)
                 - "monitor" = screen, display (NOT a computer)
@@ -124,31 +118,30 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
                 - "watch" = smartwatch, wearable
                 - "unknown" = cannot determine from context
 
-                3. priority (pick ONE):
+                2. priority (pick ONE):
                 - "energy_efficiency" = green, eco, low power, efficient, carbon, sustainable, battery life
                 - "performance" = fast, powerful, gaming, video editing, rendering, AI, high-performance, compute-intensive
                 - "cost" = cheap, budget, affordable, low price, economical
                 - "balanced" = no clear priority, mixed requirements, or normal use
 
-                4. memory (estimate RAM in GB):
+                3. memory (estimate RAM in GB):
                 - For laptop: typical 8-16, gaming/video: 32-64
                 - For desktop: typical 8-16, workstation: 32-64+
                 - For server: 64-512+
 
-                5. number_cpu (estimate cores/threads):
+                4. number_cpu (estimate cores/threads):
                 - For laptop: 4-8 cores
                 - For desktop: 6-16 cores
                 - For server: 16-64+ cores
 
-                6. budget (pick ONE):
+                5. budget (pick ONE):
                 - "low" = budget, limited budget, cheap
                 - "medium" = normal budget, standard
                 - "high" = premium, expensive, "high budget", no budget constraints
 
                 RESPOND ONLY with valid JSON (NO other text):
                 {{
-                    "use_case": "workplace" | "datacenter" | "home" | "unknown",
-                    "product_type": "laptop" | "desktop" | "monitor" | "server" | "tablet" | "phone" | "watch" | "unknown",
+                    "product_type": "laptop" | "desktop" | "monitor" | "server" | "tablet" | "phone"  | "unknown",
                     "priority": "energy_efficiency" | "performance" | "cost" | "balanced",
                     "memory": <integer GB>,
                     "number_cpu": <integer cores>,
@@ -169,7 +162,7 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
                 Remember: Be PRECISE. If unsure about product_type, set to "unknown" rather than guess wrong."""
             
             result = llm.invoke(prompt)
-            print(f"📝 LLM response: {result}")
+            print(f"LLM response: {result}")
             
             # Parse JSON from response
             json_match = re.search(r'\{.*\}', result, re.DOTALL)
@@ -178,25 +171,25 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
                 requirements = json.loads(json_match.group(0))
                 
                 # Validate required fields
-                required_fields = ['use_case', 'product_type', 'priority', 'memory', 'number_cpu']
+                required_fields = ['product_type', 'priority', 'memory', 'number_cpu']
                 if all(field in requirements for field in required_fields):
-                    print(f"✅ Extracted: {requirements['use_case']} → {requirements['product_type']}")
+                    print(f"   Product type: {requirements['product_type']}")
                     print(f"   Priority: {requirements['priority']} | Memory: {requirements.get('memory')}GB | CPUs: {requirements.get('number_cpu')}")
                     print(f"   Budget: {requirements.get('budget', 'medium')} | Confidence: {requirements.get('confidence', 0):.0%}")
                     print(f"   Reasoning: {requirements.get('reasoning', 'N/A')}")
                     return requirements
                 else:
-                    print(f"⚠️  LLM response missing required fields, using fallback")
-                    print(f"   Got: {list(requirements.keys())}")
+                    print(f"LLM response missing required fields, using fallback")
+                    print(f"Got: {list(requirements.keys())}")
         
         except json.JSONDecodeError as e:
-            print(f"⚠️  JSON parsing error: {e}")
-            print(f"   Response was: {result}")
+            print(f"JSON parsing error: {e}")
+            print(f"Response was: {result}")
         except Exception as e:
-            print(f"⚠️  LangChain error: {e}")
+            print(f"LangChain error: {e}")
     
     # ============ FALLBACK: Safe defaults ============
-    print(f"⚠️  Using fallback parsing")
+    print(f"Using fallback parsing")
     
     # Try basic keyword detection for fallback
     user_lower = user_input.lower()
@@ -213,14 +206,7 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
     elif "tablet" in user_lower:
         product_type = "tablet"
     
-    use_case = "unknown"
-    if "company" in user_lower or "office" in user_lower or "workplace" in user_lower:
-        use_case = "workplace"
-    elif "datacenter" in user_lower or "data center" in user_lower:
-        use_case = "datacenter"
-    elif "home" in user_lower:
-        use_case = "home"
-    
+
     priority = "balanced"
     if "performance" in user_lower or "fast" in user_lower or "powerful" in user_lower:
         priority = "performance"
@@ -236,7 +222,6 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
         budget = "low"
     
     requirements = {
-        "use_case": use_case,
         "product_type": product_type,
         "priority": priority,
         "budget": budget,
@@ -246,37 +231,11 @@ def extract_requirements_with_langchain(user_input: str) -> dict:
         "reasoning": "Fallback parsing from keywords"
     }
     
-    print(f"   Fallback result: {product_type} in {use_case} with {priority} priority")
+    print(f"Fallback result: {product_type} with {priority} priority")
     
     return requirements
 
 
-
-# ============ CATEGORY & SUBCATEGORY EXTRACTION ============
-
-# def get_category_from_requirements(requirements: dict) -> tuple:
-#     """
-#     Get category and subcategory from LLM-extracted requirements
-#     No need to search/infer - LLM already did it!
-#     """
-    
-#     category = requirements.get('use_case', 'unknown')
-#     subcategory = requirements.get('product_type', 'unknown')
-#     confidence = requirements.get('confidence', 0)
-    
-#     # Map to proper capitalization for database matching
-#     category_map = {
-#         'workplace': 'Workplace',
-#         'home': 'Home',
-#         'datacenter': 'Datacenter',
-#         'unknown': 'Unknown'
-#     }
-    
-#     category = category_map.get(category.lower(), 'Unknown')
-    
-#     print(f"🏷️  Category: {category} | Subcategory: {subcategory} | Confidence: {confidence:.0%}")
-    
-#     return category, subcategory
 
 def get_category_from_requirements(requirements: dict) -> tuple:
     """
@@ -284,21 +243,13 @@ def get_category_from_requirements(requirements: dict) -> tuple:
     Maps to CSV columns: category and subcategory
     """
     
-    use_case = requirements.get('use_case', 'unknown').lower()
+
     product_type = requirements.get('product_type', 'unknown').lower()
     confidence = requirements.get('confidence', 0)
-    
-    # Map use_case to category
-    category_map = {
-        'workplace': 'Workplace',
-        'home': 'Home',
-        'datacenter': 'Datacenter',
-        'unknown': 'Unknown'
-    }
-    
-    category = category_map.get(use_case, 'Unknown')
+
     
     # Map product_type to subcategory (capitalize first letter)
+
     subcategory_map = {
         'laptop': 'Laptop',
         'desktop': 'Desktop',
@@ -312,11 +263,10 @@ def get_category_from_requirements(requirements: dict) -> tuple:
     
     subcategory = subcategory_map.get(product_type, product_type.capitalize() if product_type != 'unknown' else 'unknown')
     
-    print(f"🏷️  LLM: use_case={use_case} → category={category}")
-    print(f"🏷️  LLM: product_type={product_type} → subcategory={subcategory}")
-    print(f"🏷️  Confidence: {confidence:.0%}")
+    print(f"LLM: product_type={product_type} → subcategory={subcategory}")
+    print(f"Confidence: {confidence:.0%}")
     
-    return category, subcategory
+    return subcategory
 
 
 # ============ FILTER RELEVANT PRODUCTS ============
@@ -327,21 +277,16 @@ def filter_relevant_products(requirements: dict) -> list:
     Uses BOTH category and subcategory columns from CSV
     """
     
-    category, subcategory = get_category_from_requirements(requirements)
+    subcategory = get_category_from_requirements(requirements)
     
-    if category == 'Unknown' or subcategory == 'unknown':
+    if subcategory == 'unknown':
         print(f"⚠️  Could not classify - returning all products")
         return HARDWARE_DATA
     
     filtered = []
     
     for hw in HARDWARE_DATA:
-        hw_category = str(hw.get('category', '')).lower()
-        hw_subcategory = str(hw.get('subcategory', '')).lower()
-        
-        # Match category (e.g., "Workplace")
-        if category.lower() not in hw_category:
-            continue
+        hw_subcategory = str(hw.get('subcategory', '')).lower() 
         
         # Match subcategory (e.g., "Laptop")
         if subcategory.lower() not in hw_subcategory:
@@ -349,27 +294,27 @@ def filter_relevant_products(requirements: dict) -> list:
         
         filtered.append(hw)
     
-    print(f"✅ Filtered from {len(HARDWARE_DATA)} to {len(filtered)} {subcategory}s in {category}")
+    print(f"Filtered from {len(HARDWARE_DATA)} to {len(filtered)} {subcategory}s")
     
     if not filtered:
-        print(f"⚠️  No {subcategory}s found in {category}")
+        print(f"No {subcategory}s found")
         
-        # Debug: show what subcategories exist in this category
-        available_subcats = set()
-        for hw in HARDWARE_DATA:
-            if category.lower() in str(hw.get('category', '')).lower():
-                available_subcats.add(str(hw.get('subcategory', '')))
+        # # Debug: show what subcategories exist in this category
+        # available_subcats = set()
+        # for hw in HARDWARE_DATA:
+        #     if category.lower() in str(hw.get('category', '')).lower():
+        #         available_subcats.add(str(hw.get('subcategory', '')))
         
-        print(f"   Available subcategories in {category}: {sorted(available_subcats)}")
+        # print(f"   Available subcategories in {category}: {sorted(available_subcats)}")
         
-        # Fallback: return all in category
-        print(f"   Expanding to all {category} products...")
-        for hw in HARDWARE_DATA:
-            hw_category = str(hw.get('category', '')).lower()
-            if category.lower() in hw_category:
-                filtered.append(hw)
+        # # Fallback: return all in category
+        # print(f"   Expanding to all {category} products...")
+        # for hw in HARDWARE_DATA:
+        #     hw_category = str(hw.get('category', '')).lower()
+        #     if category.lower() in hw_category:
+        #         filtered.append(hw)
         
-        print(f"✅ Expanded to {len(filtered)} products in {category}")
+        # print(f"Expanded to {len(filtered)} products in {category}")
     
     return filtered
 
@@ -398,21 +343,16 @@ def calculate_environmental_score(hw: dict) -> float:
         return 0
     
     # 1. GWP Score (40%) - Lower is better
-    # Normalize: 0-2000 kg CO2eq → 100-0 score
     gwp_score = max(0, min(100, 100 - (gwp_total / 20)))
     
     # 2. Yearly Energy Score (30%) - Lower is better
-    # Normalize: 0-500 kWh → 100-0 score
     tec_score = max(0, min(100, 100 - (yearly_tec / 5)))
     
-    # 3. Manufacturing Ratio Score (20%) - Lower mfg impact is better
-    # If most impact is in use phase, better for environment (can reduce over time)
-    # If most impact is in manufacturing, worse (locked in)
+    # 3. Manufacturing Ratio Score (20%)
     use_phase_ratio = 1 - gwp_mfg_ratio
     mfg_score = use_phase_ratio * 100
     
-    # 4. Lifetime Efficiency Score (10%) - Longer lifetime is better
-    # Normalize: 3-10 years → 0-100 score
+    # 4. Lifetime Efficiency Score (10%)
     lifetime_score = max(0, min(100, (lifetime - 3) / 7 * 100))
     
     # Weighted average
@@ -424,6 +364,44 @@ def calculate_environmental_score(hw: dict) -> float:
     )
     
     return min(100, max(0, env_score))
+
+
+# ============ PRICE SCORE ============
+
+def calculate_price_score(hw: dict, requirements: dict) -> float:
+    """
+    Calculate price score (0-100)
+    Lower price relative to budget = higher score
+    
+    Budget constraint affects scoring:
+    - "low" budget: target <€500
+    - "medium" budget: target <€1500
+    - "high" budget: target <€3000
+    """
+    
+    try:
+        price = float(hw.get('price_euros', 1000)) or 1000
+    except (ValueError, TypeError):
+        return 50
+    
+    budget = requirements.get('budget', 'medium').lower()
+    
+    # Set budget targets (in euros)
+    if budget == 'low':
+        target_price = 500
+    elif budget == 'high':
+        target_price = 3000
+    else:  # medium
+        target_price = 1500
+    
+    # Calculate score based on price ratio
+    # If price = target → score = 100
+    # If price = 2x target → score = 50
+    # If price = 0.5x target → score = 100 (capped)
+    price_ratio = price / target_price if target_price > 0 else 1
+    price_score = max(0, min(100, 100 / price_ratio if price_ratio > 0 else 100))
+    
+    return price_score
 
 
 # ============ PERFORMANCE SCORE ============
@@ -445,18 +423,17 @@ def calculate_performance_score(hw: dict, requirements: dict) -> float:
     
     # Memory matching (60%)
     memory_ratio = hw_memory / req_memory if req_memory > 0 else 1
-    # Penalize if too low, reward if meets/exceeds
     memory_score = min(100, memory_ratio * 100)
     if memory_ratio < 0.8:
-        memory_score *= 0.5  # Penalty for insufficient RAM
+        memory_score *= 0.5
     
     # CPU matching (40%)
     cpu_ratio = hw_cpu / req_cpu if req_cpu > 0 else 1
     cpu_score = min(100, cpu_ratio * 100)
     if cpu_ratio < 0.8:
-        cpu_score *= 0.5  # Penalty for insufficient CPUs
+        cpu_score *= 0.5
     
-    perf_score = (memory_score * 0.4 + cpu_score * 0.6)
+    perf_score = (memory_score * 0.6 + cpu_score * 0.4)
     
     return min(100, max(0, perf_score))
 
@@ -466,27 +443,29 @@ def calculate_performance_score(hw: dict, requirements: dict) -> float:
 def score_hardware(hw: dict, requirements: dict) -> float:
     """
     Score hardware based on user priorities
+    NOW INCLUDES PRICE as a factor
     
-    Weights:
-    - Energy efficiency priority: 70% environmental, 30% performance
-    - Performance priority: 30% environmental, 70% performance
-    - Cost priority: 50% environmental, 50% performance
-    - Balanced: 50% environmental, 50% performance
+    Scoring breakdown by priority:
+    - Energy efficiency: 60% environmental, 20% performance, 20% price
+    - Performance: 20% environmental, 60% performance, 20% price
+    - Cost: 30% environmental, 20% performance, 50% price
+    - Balanced: 40% environmental, 40% performance, 20% price
     """
     
-    priority = requirements.get('priority', 'balanced')
+    priority = requirements.get('priority', 'balanced').lower()
     
     env_score = calculate_environmental_score(hw)
     perf_score = calculate_performance_score(hw, requirements)
+    price_score = calculate_price_score(hw, requirements)
     
-    if priority == 'energy_efficiency':
-        final_score = env_score * 0.8 + perf_score * 0.2
+    if priority == 'energy_efficiency': 
+        final_score = env_score * 0.6 + perf_score * 0.2 + price_score * 0.2
     elif priority == 'performance':
-        final_score = env_score * 0.2 + perf_score * 0.8
+        final_score = env_score * 0.2 + perf_score * 0.6 + price_score * 0.2
     elif priority == 'cost':
-        final_score = env_score * 0.5 + perf_score * 0.5
+        final_score = env_score * 0.3 + perf_score * 0.2 + price_score * 0.5
     else:  # balanced
-        final_score = env_score * 0.5 + perf_score * 0.5
+        final_score = env_score * 0.4 + perf_score * 0.4 + price_score * 0.2
     
     return min(100, max(0, final_score))
 
@@ -496,9 +475,9 @@ def score_hardware(hw: dict, requirements: dict) -> float:
 def find_recommendations(requirements: dict, top_n: int = 5) -> list:
     """
     Optimized recommendation engine:
-    1. Filter to relevant products (category + subcategory)
-    2. Score only relevant products
-    3. Return top N ranked by score
+    1. Filter to relevant products
+    2. Score with price factor included
+    3. Return top N
     """
     
     print(f"\n🔍 Step 1: Filtering relevant products...")
@@ -507,8 +486,8 @@ def find_recommendations(requirements: dict, top_n: int = 5) -> list:
     if not relevant_products:
         print(f"⚠️  No relevant products found!")
         return []
-
-    print(f"🔍 Step 2: Scoring {len(relevant_products)} products...")
+    
+    print(f"🔍 Step 2: Scoring {len(relevant_products)} products (with price)...")
     candidates = []
     
     for hw in relevant_products:
@@ -523,7 +502,8 @@ def find_recommendations(requirements: dict, top_n: int = 5) -> list:
     top_recommendations = candidates[:top_n]
     
     for i, hw in enumerate(top_recommendations, 1):
-        print(f"  #{i}: {hw.get('manufacturer')} {hw.get('name')} - Score: {hw['score']:.1f}")
+        price = hw.get('price_euros', 'N/A')
+        print(f"  #{i}: {hw.get('manufacturer')} {hw.get('name')} - Score: {hw['score']:.1f} | €{price}")
     
     return top_recommendations
 
@@ -532,29 +512,34 @@ def find_recommendations(requirements: dict, top_n: int = 5) -> list:
 
 def generate_reasoning_with_langchain(hw: dict, requirements: dict, user_input: str) -> str:
     """
-    Generate reasoning highlighting environmental benefits
-    Uses LLM to create natural language explanations
+    Generate reasoning highlighting environmental, price value, and specs
     """
     
     if OLLAMA_AVAILABLE and llm:
         try:
             priority = requirements.get('priority', 'balanced')
             env_score = calculate_environmental_score(hw)
+            price_score = calculate_price_score(hw, requirements)
             
-            prompt = f"""You are a sustainable IT expert.
+            prompt = f"""You are a sustainable IT expert focused on value for money.
                     User asked: {user_input[:80]}
                     Recommended: {hw.get('manufacturer')} {hw.get('name')}
                     Priority: {priority}
+                    Price: €{hw.get('price_euros', 'N/A')}
 
                     Environmental metrics:
                     - GWP (lifecycle): {hw.get('gwp_total', 0):.0f} kgCO₂eq
                     - Yearly energy: {hw.get('yearly_tec', 0):.0f} kWh
-                    - Manufacturing ratio: {hw.get('gwp_manufacturing_ratio', 0)*100:.0f}%
-                    - Lifetime: {hw.get('lifetime', 5)} years
                     - Environmental score: {env_score:.0f}/100
 
-                    Write 2 sentences explaining why this is a good recommendation.
-                    Always mention environmental benefits. Be technical and concise."""
+                    Specs:
+                    - Memory: {hw.get('memory', 'N/A')} GB
+                    - CPUs: {hw.get('number_cpu', 'N/A')}
+                    - Storage: {hw.get('hard_drive', 'N/A')}
+
+                    Write 2 sentences explaining why this is good.
+                    Include: environmental impact, value for money, specs match.
+                    Be technical and concise."""
             
             result = llm.invoke(prompt)
             return result.strip()
@@ -562,26 +547,30 @@ def generate_reasoning_with_langchain(hw: dict, requirements: dict, user_input: 
         except Exception as e:
             print(f"⚠️  Reasoning error: {e}")
     
-    # Fallback reasoning - emphasize environmental
+    # Fallback reasoning
     priority = requirements.get('priority', 'balanced')
     env_score = calculate_environmental_score(hw)
+    price_score = calculate_price_score(hw, requirements)
     gwp = hw.get('gwp_total', 0)
     energy = hw.get('yearly_tec', 0)
+    price = hw.get('price_euros', 'N/A')
     
-    if env_score >= 70:
-        env_rating = "excellent environmental performance"
-    elif env_score >= 50:
-        env_rating = "good environmental profile"
-    else:
-        env_rating = "moderate environmental footprint"
+    env_rating = ("excellent environmental" if env_score >= 70 
+                  else "good environmental" if env_score >= 50 
+                  else "moderate environmental")
+    
+    value_rating = ("excellent value" if price_score >= 70 
+                    else "good value" if price_score >= 50 
+                    else "higher price")
     
     if priority == 'energy_efficiency':
-        return f"Outstanding choice with {env_rating}. Only {energy:.0f} kWh/year consumption and {gwp:.0f} kgCO₂eq lifecycle impact."
+        return f"Outstanding with {env_rating} performance - only {energy:.0f} kWh/year and {gwp:.0f} kgCO₂eq. €{price} with {value_rating}."
     elif priority == 'performance':
-        return f"Strong specs meet performance needs while maintaining {env_rating}. {gwp:.0f} kgCO₂eq environmental cost."
+        return f"Strong specs with {env_rating} credentials. €{price} offers {value_rating} for performance delivered."
+    elif priority == 'cost':
+        return f"Best value with {env_rating} impact. €{price} with {value_rating} and solid sustainability."
     else:
-        return f"Well-balanced option with {env_rating}. {gwp:.0f} kgCO₂eq lifetime emissions and {energy:.0f} kWh/year usage."
-
+        return f"Well-balanced with {env_rating} profile and {value_rating}. €{price} for solid all-around performance."
 
 # ============ GENERATE COMPARISON ============
 
@@ -693,7 +682,7 @@ def recommend_hardware(request: UserRequest) -> dict:
             result["recommendations"].append({
                 "name": hw.get('name', 'Unknown'),
                 "manufacturer": hw.get('manufacturer', 'Unknown'),
-                "category": hw.get('category', 'Unknown'),
+                "category": hw.get('subcategory', 'Unknown'),
                 "gwp_total": float(hw.get('gwp_total', 0)) if hw.get('gwp_total') else 0,
                 "gwp_manufacturing_ratio": float(hw.get('gwp_manufacturing_ratio', 0)) if hw.get('gwp_manufacturing_ratio') else 0,
                 "gwp_use_ratio": float(hw.get('gwp_use_ratio', 0)) if hw.get('gwp_use_ratio') else 0,
@@ -702,10 +691,12 @@ def recommend_hardware(request: UserRequest) -> dict:
                 "use_location": str(hw.get('use_location', 'WW')),
                 "memory": hw.get('memory', 'N/A'),
                 "number_cpu": hw.get('number_cpu', 'N/A'),
-                "height": hw.get('height', 'N/A'),
+                "hard_drive": hw.get('hard_drive', 'N/A'),
+                "price_euros": float(hw.get('price_euros', 0)) if hw.get('price_euros') else 0, 
                 "score": round(hw['score'], 2),
                 "reasoning": reasoning
             })
+
         
         # Step 5: Generate comparison
         result["comparison"] = generate_comparison(recommendations)
