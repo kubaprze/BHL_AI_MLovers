@@ -11,15 +11,24 @@ import pandas as pd
 import numpy as np
 import json
 import re
+from router import router
+from db import init_db
 
 from langchain_community.llms import Ollama
+
+def lifespan(app: FastAPI):
+    #app.state.model = load_model()
+    init_db()
+    yield
 
 app = FastAPI(
     title="Eco-IT Recommender API",
     version="1.0.0",
-    description="AI-powered hardware recommendation"
+    description="AI-powered hardware recommendation",
+    lifespan=lifespan
 )
 
+app.include_router(router=router)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
