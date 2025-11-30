@@ -54,8 +54,12 @@ def add_issue(issue: Report, session: SessionDep):
     You analize problems with hardware and assign them severity from 1 (least severe) to 6 (most severe). 
     REPLY ONLY WITH the severity scale. 
     For example:
-    - "My screen is shattered" - 6
-    - "My keyboard is a little scratched" - 1
+    "The laptop casing has a small cosmetic crack" – 1
+    "The mouse sometimes double-clicks unintentionally" – 2
+    "The Wi-Fi disconnects a few times per day" – 3
+    "The battery drains from 100% to 20% in under an hour" – 4
+    "The computer freezes randomly during work" – 5
+    "The device won't turn on at all" – 6
 
     NOW CLASSIFY THIS REQUEST:
     {issue.description}
@@ -80,3 +84,28 @@ def add_issue(issue: Report, session: SessionDep):
 
     session.commit()
 
+
+@router.get("/get_devices")
+def get_devices(session: SessionDep):
+    results = session.exec(select(Device))
+
+    return results.all()
+
+
+@router.get("/get_worst_issues")
+def get_worst_issues(session: SessionDep):
+    results = session.exec(
+        select(Issue.description, Issue.severity, Device.device_name)
+        .select_from(Issue)
+        .join(Device, Device.id == Issue.device_id)
+        .order_by(Issue.severity.desc())
+        .limit(5)).all()
+
+    return [
+    {
+        "description": r[0],
+        "severity": r[1],
+        "device_name": r[2]
+    }
+    for r in results
+    ]
