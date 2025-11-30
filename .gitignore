@@ -38,9 +38,6 @@ venv/
 # Streamlit
 .streamlit/secrets.toml
 
-# Data
-hardware_data.json
-*.csv
 
 # Misc
 .env
