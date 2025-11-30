@@ -1,0 +1,21 @@
+{
+  "model_type": "SARIMA",
+  "order": [
+    2,
+    1,
+    2
+  ],
+  "seasonal_order": [
+    1,
+    0,
+    1,
+    12
+  ],
+  "test_mae": 30.46758263238545,
+  "train_size": 240,
+  "test_size": 60,
+  "total_samples": 300,
+  "trained_date": "2025-11-30T05:23:31.021240",
+  "source_file": "../data/company_growth_detailed.csv",
+  "model_name": "SARIMA(2, 1, 2)(1, 0, 1, 12)"
+}
