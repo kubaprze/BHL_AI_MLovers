@@ -3,7 +3,7 @@ import requests
 
 API_URL = "http://localhost:8000/issues"  # adjust if needed
 
-st.title("System wspomagania wymiany sprzętu")
+st.title("Device management system")
 
 # ------------------- DEVICES ----------------------
 st.header("Add Device")
